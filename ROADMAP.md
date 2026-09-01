@@ -5,7 +5,7 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Symmetric per-tensor INT4/INT8 quantization baseline
 - [x] Deterministic reconstruction-error CLI report
 - [x] Unit tests for zero tensors, validation, and precision ordering
-- [ ] Add asymmetric affine quantization with zero points
+- [x] Add asymmetric affine quantization with zero points
 - [ ] Add per-channel quantization for 2D weight matrices
 - [ ] Compare per-tensor and per-channel error on seeded matrices
 - [ ] Add percentile clipping for outlier-heavy distributions
@@ -22,4 +22,3 @@ Each checked item must include a runnable test or reproducible measurement.
 - [ ] Add property-style randomized invariant checks
 - [ ] Document numerical limitations and failure modes
 - [ ] Publish a final comparison table with reproducible commands
-

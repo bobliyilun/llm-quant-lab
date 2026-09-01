@@ -1,6 +1,12 @@
 import unittest
 
-from quantize import dequantize, error_metrics, quantize_symmetric
+from quantize import (
+    dequantize,
+    dequantize_affine,
+    error_metrics,
+    quantize_affine,
+    quantize_symmetric,
+)
 
 
 class QuantizationTests(unittest.TestCase):
@@ -17,6 +23,13 @@ class QuantizationTests(unittest.TestCase):
             errors.append(error_metrics(values, dequantize(packed, scale))["mse"])
         self.assertLessEqual(errors[1], errors[0])
 
+    def test_affine_quantization_tracks_zero_point(self):
+        values = [-1.0, 0.0, 1.0]
+        packed, scale, zero_point = quantize_affine(values, 8)
+        self.assertEqual((packed, zero_point), ([0, 128, 255], 128))
+        self.assertEqual(dequantize_affine(packed, scale, zero_point)[1], 0.0)
+        self.assertLess(error_metrics(values, dequantize_affine(packed, scale, zero_point))["mse"], 0.00002)
+
     def test_rejects_invalid_input(self):
         with self.assertRaises(ValueError):
             quantize_symmetric([], 4)
@@ -26,4 +39,3 @@ class QuantizationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

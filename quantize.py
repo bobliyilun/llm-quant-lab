@@ -22,10 +22,33 @@ def quantize_symmetric(values: Sequence[float], bits: int) -> Tuple[List[int], f
     return quantized, scale
 
 
+def quantize_affine(values: Sequence[float], bits: int) -> Tuple[List[int], float, int]:
+    """Quantize values into an unsigned affine range with a zero point."""
+    if not values:
+        raise ValueError("values must not be empty")
+    if bits < 2 or bits > 16:
+        raise ValueError("bits must be between 2 and 16")
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("values must be finite")
+
+    qmax = (1 << bits) - 1
+    minimum, maximum = min(values), max(values)
+    scale = (maximum - minimum) / qmax if maximum != minimum else 1.0
+    zero_point = max(0, min(qmax, round(-minimum / scale)))
+    quantized = [max(0, min(qmax, round(value / scale) + zero_point)) for value in values]
+    return quantized, scale, zero_point
+
+
 def dequantize(values: Sequence[int], scale: float) -> List[float]:
     if scale <= 0 or not math.isfinite(scale):
         raise ValueError("scale must be positive and finite")
     return [value * scale for value in values]
+
+
+def dequantize_affine(values: Sequence[int], scale: float, zero_point: int) -> List[float]:
+    if scale <= 0 or not math.isfinite(scale):
+        raise ValueError("scale must be positive and finite")
+    return [(value - zero_point) * scale for value in values]
 
 
 def error_metrics(reference: Sequence[float], candidate: Sequence[float]) -> dict:
@@ -64,4 +87,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
