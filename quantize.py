@@ -39,10 +39,31 @@ def quantize_affine(values: Sequence[float], bits: int) -> Tuple[List[int], floa
     return quantized, scale, zero_point
 
 
+def quantize_per_channel(
+    matrix: Sequence[Sequence[float]], bits: int
+) -> Tuple[List[List[int]], List[float]]:
+    """Symmetrically quantize each row of a rectangular weight matrix."""
+    if not matrix or not matrix[0]:
+        raise ValueError("matrix must not be empty")
+    width = len(matrix[0])
+    if any(len(row) != width for row in matrix):
+        raise ValueError("matrix rows must have the same length")
+    packed_and_scales = [quantize_symmetric(row, bits) for row in matrix]
+    return [packed for packed, _ in packed_and_scales], [scale for _, scale in packed_and_scales]
+
+
 def dequantize(values: Sequence[int], scale: float) -> List[float]:
     if scale <= 0 or not math.isfinite(scale):
         raise ValueError("scale must be positive and finite")
     return [value * scale for value in values]
+
+
+def dequantize_per_channel(
+    matrix: Sequence[Sequence[int]], scales: Sequence[float]
+) -> List[List[float]]:
+    if len(matrix) != len(scales):
+        raise ValueError("matrix and scales must have the same number of rows")
+    return [dequantize(row, scale) for row, scale in zip(matrix, scales)]
 
 
 def dequantize_affine(values: Sequence[int], scale: float, zero_point: int) -> List[float]:

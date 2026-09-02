@@ -5,6 +5,7 @@ Experimental, work-in-progress implementations of LLM weight quantization primit
 ## Current scope
 
 - INT4 and INT8 symmetric quantization
+- per-channel symmetric quantization for 2D weight matrices
 - deterministic synthetic weight generation
 - reconstruction MSE and maximum-error reporting
 - zero-vector and input-validation coverage
