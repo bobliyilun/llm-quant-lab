@@ -16,8 +16,11 @@ This is a learning and benchmarking lab, not a production inference library.
 
 ```bash
 python3 quantize.py --bits 4 --size 4096 --seed 7
+python3 quantize.py --bits 4 --rows 8 --size 512 --seed 7
 python3 -m unittest -v
 ```
 
-See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.
+Passing `--rows` greater than one creates a seeded matrix with row-dependent
+scales and reports reconstruction error for per-tensor and per-channel modes.
 
+See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.

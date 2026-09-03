@@ -1,6 +1,7 @@
 import unittest
 
 from quantize import (
+    compare_matrix_quantization,
     dequantize,
     dequantize_affine,
     dequantize_per_channel,
@@ -38,6 +39,16 @@ class QuantizationTests(unittest.TestCase):
         self.assertEqual(scales, [1 / 7, 8 / 7])
         self.assertEqual(packed, [[-7, -4, 4, 7], [-7, -4, 4, 7]])
         self.assertEqual(dequantize_per_channel(packed, scales), matrix)
+
+    def test_per_channel_beats_per_tensor_on_scaled_rows(self):
+        matrix = [
+            [-0.1, -0.05, 0.05, 0.1],
+            [-4.0, -2.0, 2.0, 4.0],
+        ]
+        comparison = compare_matrix_quantization(matrix, 4)
+        self.assertLess(
+            comparison["per_channel"]["mse"], comparison["per_tensor"]["mse"]
+        )
 
     def test_rejects_invalid_input(self):
         with self.assertRaises(ValueError):

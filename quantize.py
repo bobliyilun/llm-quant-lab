@@ -82,17 +82,57 @@ def error_metrics(reference: Sequence[float], candidate: Sequence[float]) -> dic
     }
 
 
+def compare_matrix_quantization(matrix: Sequence[Sequence[float]], bits: int) -> dict:
+    """Return reconstruction error for per-tensor and per-channel quantization."""
+    if not matrix or not matrix[0]:
+        raise ValueError("matrix must not be empty")
+    width = len(matrix[0])
+    if any(len(row) != width for row in matrix):
+        raise ValueError("matrix rows must have the same length")
+
+    flattened = [value for row in matrix for value in row]
+    per_tensor, tensor_scale = quantize_symmetric(flattened, bits)
+    channel_packed, channel_scales = quantize_per_channel(matrix, bits)
+    channel_restored = dequantize_per_channel(channel_packed, channel_scales)
+    return {
+        "per_tensor": error_metrics(flattened, dequantize(per_tensor, tensor_scale)),
+        "per_channel": error_metrics(
+            flattened, [value for row in channel_restored for value in row]
+        ),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bits", type=int, choices=range(2, 17), default=4)
     parser.add_argument("--size", type=int, default=1024)
+    parser.add_argument("--rows", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
-    if args.size <= 0:
-        parser.error("--size must be positive")
+    if args.size <= 0 or args.rows <= 0:
+        parser.error("--size and --rows must be positive")
 
     rng = random.Random(args.seed)
-    weights = [rng.gauss(0.0, 0.5) for _ in range(args.size)]
+    weights = [
+        rng.gauss(0.0, 0.5 * (row + 1))
+        for row in range(args.rows)
+        for _ in range(args.size)
+    ]
+    if args.rows > 1:
+        matrix = [
+            weights[offset : offset + args.size]
+            for offset in range(0, len(weights), args.size)
+        ]
+        report = {
+            "bits": args.bits,
+            "columns": args.size,
+            "rows": args.rows,
+            "seed": args.seed,
+            **compare_matrix_quantization(matrix, args.bits),
+        }
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
     packed, scale = quantize_symmetric(weights, args.bits)
     restored = dequantize(packed, scale)
     report = {
