@@ -8,6 +8,7 @@ from quantize import (
     error_metrics,
     quantize_affine,
     quantize_per_channel,
+    quantize_symmetric_clipped,
     quantize_symmetric,
 )
 
@@ -50,6 +51,17 @@ class QuantizationTests(unittest.TestCase):
             comparison["per_channel"]["mse"], comparison["per_tensor"]["mse"]
         )
 
+    def test_percentile_clipping_uses_nearest_rank_and_preserves_body_precision(self):
+        values = [-1.0, -0.5, 0.0, 0.5, 1.0, 100.0]
+        packed, scale, clip_value = quantize_symmetric_clipped(values, 4, 80)
+        self.assertEqual(clip_value, 1.0)
+        self.assertEqual(packed, [-7, -4, 0, 4, 7, 7])
+        baseline, baseline_scale = quantize_symmetric(values, 4)
+        self.assertLess(
+            error_metrics(values[:5], dequantize(packed, scale)[:5])["mse"],
+            error_metrics(values[:5], dequantize(baseline, baseline_scale)[:5])["mse"],
+        )
+
     def test_rejects_invalid_input(self):
         with self.assertRaises(ValueError):
             quantize_symmetric([], 4)
@@ -57,6 +69,8 @@ class QuantizationTests(unittest.TestCase):
             quantize_symmetric([1.0], 1)
         with self.assertRaises(ValueError):
             quantize_per_channel([[1.0], [1.0, 2.0]], 4)
+        with self.assertRaises(ValueError):
+            quantize_symmetric_clipped([1.0], 4, 0)
 
 
 if __name__ == "__main__":

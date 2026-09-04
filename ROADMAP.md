@@ -8,7 +8,7 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Add asymmetric affine quantization with zero points
 - [x] Add per-channel quantization for 2D weight matrices
 - [x] Compare per-tensor and per-channel error on seeded matrices
-- [ ] Add percentile clipping for outlier-heavy distributions
+- [x] Add percentile clipping for outlier-heavy distributions
 - [ ] Benchmark clipping thresholds across Laplace and Gaussian weights
 - [ ] Add group-wise quantization with configurable group size
 - [ ] Record scale metadata overhead in compression estimates

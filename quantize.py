@@ -22,6 +22,22 @@ def quantize_symmetric(values: Sequence[float], bits: int) -> Tuple[List[int], f
     return quantized, scale
 
 
+def quantize_symmetric_clipped(
+    values: Sequence[float], bits: int, percentile: float
+) -> Tuple[List[int], float, float]:
+    """Symmetrically quantize after clipping magnitudes at a nearest-rank percentile."""
+    if not 0 < percentile <= 100:
+        raise ValueError("percentile must be greater than 0 and at most 100")
+    # Reuse the baseline validation and make percentile=100 exactly equivalent.
+    quantize_symmetric(values, bits)
+    magnitudes = sorted(abs(value) for value in values)
+    rank = max(1, math.ceil(len(magnitudes) * percentile / 100))
+    clip_value = magnitudes[rank - 1]
+    clipped = [max(-clip_value, min(clip_value, value)) for value in values]
+    quantized, scale = quantize_symmetric(clipped, bits)
+    return quantized, scale, clip_value
+
+
 def quantize_affine(values: Sequence[float], bits: int) -> Tuple[List[int], float, int]:
     """Quantize values into an unsigned affine range with a zero point."""
     if not values:
@@ -108,9 +124,16 @@ def main() -> None:
     parser.add_argument("--size", type=int, default=1024)
     parser.add_argument("--rows", type=int, default=1)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--clip-percentile",
+        type=float,
+        help="clip absolute values at this nearest-rank percentile before quantizing",
+    )
     args = parser.parse_args()
     if args.size <= 0 or args.rows <= 0:
         parser.error("--size and --rows must be positive")
+    if args.rows > 1 and args.clip_percentile is not None:
+        parser.error("--clip-percentile is currently supported only with one row")
 
     rng = random.Random(args.seed)
     weights = [
@@ -133,7 +156,13 @@ def main() -> None:
         print(json.dumps(report, indent=2, sort_keys=True))
         return
 
-    packed, scale = quantize_symmetric(weights, args.bits)
+    if args.clip_percentile is None:
+        packed, scale = quantize_symmetric(weights, args.bits)
+        clip_value = None
+    else:
+        packed, scale, clip_value = quantize_symmetric_clipped(
+            weights, args.bits, args.clip_percentile
+        )
     restored = dequantize(packed, scale)
     report = {
         "bits": args.bits,
@@ -143,6 +172,11 @@ def main() -> None:
         "theoretical_compression_ratio": 32 / args.bits,
         **error_metrics(weights, restored),
     }
+    if clip_value is not None:
+        report.update(
+            clip_percentile=args.clip_percentile,
+            clip_value=clip_value,
+        )
     print(json.dumps(report, indent=2, sort_keys=True))
 
 

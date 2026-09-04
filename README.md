@@ -16,11 +16,14 @@ This is a learning and benchmarking lab, not a production inference library.
 
 ```bash
 python3 quantize.py --bits 4 --size 4096 --seed 7
+python3 quantize.py --bits 4 --size 4096 --seed 7 --clip-percentile 99.5
 python3 quantize.py --bits 4 --rows 8 --size 512 --seed 7
 python3 -m unittest -v
 ```
 
 Passing `--rows` greater than one creates a seeded matrix with row-dependent
 scales and reports reconstruction error for per-tensor and per-channel modes.
+`--clip-percentile` clips absolute values with a deterministic nearest-rank
+threshold before symmetric quantization; the JSON report includes that threshold.
 
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.
