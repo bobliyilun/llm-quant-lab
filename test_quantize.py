@@ -1,6 +1,7 @@
 import unittest
 
 from quantize import (
+    benchmark_clipping,
     compare_matrix_quantization,
     dequantize,
     dequantize_affine,
@@ -62,6 +63,13 @@ class QuantizationTests(unittest.TestCase):
             error_metrics(values[:5], dequantize(baseline, baseline_scale)[:5])["mse"],
         )
 
+    def test_clipping_benchmark_is_seeded_and_reports_both_distributions(self):
+        result = benchmark_clipping(4, 64, 7, (95.0, 100.0))
+        self.assertEqual(result, benchmark_clipping(4, 64, 7, (95.0, 100.0)))
+        self.assertEqual(set(result), {"gaussian", "laplace"})
+        self.assertEqual(set(result["laplace"]), {"95.0", "100.0"})
+        self.assertGreaterEqual(result["gaussian"]["100.0"]["mse"], 0.0)
+
     def test_rejects_invalid_input(self):
         with self.assertRaises(ValueError):
             quantize_symmetric([], 4)
@@ -71,6 +79,8 @@ class QuantizationTests(unittest.TestCase):
             quantize_per_channel([[1.0], [1.0, 2.0]], 4)
         with self.assertRaises(ValueError):
             quantize_symmetric_clipped([1.0], 4, 0)
+        with self.assertRaises(ValueError):
+            benchmark_clipping(4, 1, 0, ())
 
 
 if __name__ == "__main__":

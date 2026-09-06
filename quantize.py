@@ -118,6 +118,41 @@ def compare_matrix_quantization(matrix: Sequence[Sequence[float]], bits: int) ->
     }
 
 
+def laplace_samples(rng: random.Random, size: int, scale: float = 0.5) -> List[float]:
+    """Generate zero-centered Laplace samples without external dependencies."""
+    return [
+        scale * math.copysign(math.log1p(-2 * abs(rng.random() - 0.5)), rng.random() - 0.5)
+        for _ in range(size)
+    ]
+
+
+def benchmark_clipping(
+    bits: int, size: int, seed: int, percentiles: Sequence[float]
+) -> dict:
+    """Measure clipped reconstruction error for seeded Gaussian and Laplace weights."""
+    if not percentiles:
+        raise ValueError("percentiles must not be empty")
+    report = {}
+    for name in ("gaussian", "laplace"):
+        rng = random.Random(seed)
+        values = (
+            [rng.gauss(0.0, 0.5) for _ in range(size)]
+            if name == "gaussian"
+            else laplace_samples(rng, size)
+        )
+        report[name] = {
+            str(percentile): {
+                "clip_value": clip_value,
+                **error_metrics(values, dequantize(packed, scale)),
+            }
+            for percentile in percentiles
+            for packed, scale, clip_value in [
+                quantize_symmetric_clipped(values, bits, percentile)
+            ]
+        }
+    return report
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bits", type=int, choices=range(2, 17), default=4)
@@ -129,11 +164,31 @@ def main() -> None:
         type=float,
         help="clip absolute values at this nearest-rank percentile before quantizing",
     )
+    parser.add_argument(
+        "--benchmark-clipping",
+        action="store_true",
+        help="compare clipping thresholds across seeded Gaussian and Laplace weights",
+    )
     args = parser.parse_args()
     if args.size <= 0 or args.rows <= 0:
         parser.error("--size and --rows must be positive")
     if args.rows > 1 and args.clip_percentile is not None:
         parser.error("--clip-percentile is currently supported only with one row")
+    if args.benchmark_clipping and (args.rows > 1 or args.clip_percentile is not None):
+        parser.error("--benchmark-clipping cannot be combined with --rows or --clip-percentile")
+
+    if args.benchmark_clipping:
+        percentiles = (90.0, 95.0, 99.0, 100.0)
+        print(json.dumps({
+            "bits": args.bits,
+            "elements": args.size,
+            "percentiles": percentiles,
+            "seed": args.seed,
+            "distributions": benchmark_clipping(
+                args.bits, args.size, args.seed, percentiles
+            ),
+        }, indent=2, sort_keys=True))
+        return
 
     rng = random.Random(args.seed)
     weights = [

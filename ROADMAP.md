@@ -9,7 +9,7 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Add per-channel quantization for 2D weight matrices
 - [x] Compare per-tensor and per-channel error on seeded matrices
 - [x] Add percentile clipping for outlier-heavy distributions
-- [ ] Benchmark clipping thresholds across Laplace and Gaussian weights
+- [x] Benchmark clipping thresholds across Laplace and Gaussian weights
 - [ ] Add group-wise quantization with configurable group size
 - [ ] Record scale metadata overhead in compression estimates
 - [ ] Add packed INT4 byte encoding and round-trip tests
