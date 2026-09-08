@@ -17,6 +17,7 @@ This is a learning and benchmarking lab, not a production inference library.
 ```bash
 python3 quantize.py --bits 4 --size 4096 --seed 7
 python3 quantize.py --bits 4 --size 4096 --seed 7 --clip-percentile 99.5
+python3 quantize.py --bits 4 --size 4096 --seed 7 --group-size 128
 python3 quantize.py --bits 4 --size 4096 --seed 7 --benchmark-clipping
 python3 quantize.py --bits 4 --rows 8 --size 512 --seed 7
 python3 -m unittest -v
@@ -28,5 +29,7 @@ scales and reports reconstruction error for per-tensor and per-channel modes.
 threshold before symmetric quantization; the JSON report includes that threshold.
 `--benchmark-clipping` compares 90th, 95th, 99th, and 100th percentile clipping
 across seeded Gaussian and Laplace weight samples.
+`--group-size` gives each contiguous group an independent symmetric scale and
+reports the group count and scales used for reconstruction.
 
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.

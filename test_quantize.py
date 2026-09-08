@@ -5,10 +5,12 @@ from quantize import (
     compare_matrix_quantization,
     dequantize,
     dequantize_affine,
+    dequantize_groupwise,
     dequantize_per_channel,
     error_metrics,
     quantize_affine,
     quantize_per_channel,
+    quantize_groupwise,
     quantize_symmetric_clipped,
     quantize_symmetric,
 )
@@ -52,6 +54,13 @@ class QuantizationTests(unittest.TestCase):
             comparison["per_channel"]["mse"], comparison["per_tensor"]["mse"]
         )
 
+    def test_groupwise_quantization_uses_independent_scales_and_partial_group(self):
+        values = [-1.0, -4 / 7, 4 / 7, 1.0, -8.0, 8.0]
+        packed, scales = quantize_groupwise(values, 4, 4)
+        self.assertEqual(packed, [-7, -4, 4, 7, -7, 7])
+        self.assertEqual(scales, [1 / 7, 8 / 7])
+        self.assertEqual(dequantize_groupwise(packed, scales, 4), values)
+
     def test_percentile_clipping_uses_nearest_rank_and_preserves_body_precision(self):
         values = [-1.0, -0.5, 0.0, 0.5, 1.0, 100.0]
         packed, scale, clip_value = quantize_symmetric_clipped(values, 4, 80)
@@ -77,6 +86,10 @@ class QuantizationTests(unittest.TestCase):
             quantize_symmetric([1.0], 1)
         with self.assertRaises(ValueError):
             quantize_per_channel([[1.0], [1.0, 2.0]], 4)
+        with self.assertRaises(ValueError):
+            quantize_groupwise([1.0], 4, 0)
+        with self.assertRaises(ValueError):
+            dequantize_groupwise([1.0, 2.0], [1.0, 1.0], 4)
         with self.assertRaises(ValueError):
             quantize_symmetric_clipped([1.0], 4, 0)
         with self.assertRaises(ValueError):

@@ -68,10 +68,43 @@ def quantize_per_channel(
     return [packed for packed, _ in packed_and_scales], [scale for _, scale in packed_and_scales]
 
 
+def quantize_groupwise(
+    values: Sequence[float], bits: int, group_size: int
+) -> Tuple[List[int], List[float]]:
+    """Symmetrically quantize contiguous value groups with independent scales."""
+    if group_size <= 0:
+        raise ValueError("group_size must be positive")
+    if not values:
+        raise ValueError("values must not be empty")
+    groups = [values[offset : offset + group_size] for offset in range(0, len(values), group_size)]
+    packed_and_scales = [quantize_symmetric(group, bits) for group in groups]
+    return (
+        [value for packed, _ in packed_and_scales for value in packed],
+        [scale for _, scale in packed_and_scales],
+    )
+
+
 def dequantize(values: Sequence[int], scale: float) -> List[float]:
     if scale <= 0 or not math.isfinite(scale):
         raise ValueError("scale must be positive and finite")
     return [value * scale for value in values]
+
+
+def dequantize_groupwise(
+    values: Sequence[int], scales: Sequence[float], group_size: int
+) -> List[float]:
+    if group_size <= 0:
+        raise ValueError("group_size must be positive")
+    if not values:
+        raise ValueError("values must not be empty")
+    expected_scales = math.ceil(len(values) / group_size)
+    if len(scales) != expected_scales:
+        raise ValueError("scales must match the number of value groups")
+    return [
+        restored
+        for offset, scale in zip(range(0, len(values), group_size), scales)
+        for restored in dequantize(values[offset : offset + group_size], scale)
+    ]
 
 
 def dequantize_per_channel(
@@ -158,6 +191,10 @@ def main() -> None:
     parser.add_argument("--bits", type=int, choices=range(2, 17), default=4)
     parser.add_argument("--size", type=int, default=1024)
     parser.add_argument("--rows", type=int, default=1)
+    parser.add_argument(
+        "--group-size", type=int,
+        help="quantize contiguous groups with independent symmetric scales",
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(
         "--clip-percentile",
@@ -172,10 +209,12 @@ def main() -> None:
     args = parser.parse_args()
     if args.size <= 0 or args.rows <= 0:
         parser.error("--size and --rows must be positive")
-    if args.rows > 1 and args.clip_percentile is not None:
-        parser.error("--clip-percentile is currently supported only with one row")
-    if args.benchmark_clipping and (args.rows > 1 or args.clip_percentile is not None):
-        parser.error("--benchmark-clipping cannot be combined with --rows or --clip-percentile")
+    if args.group_size is not None and args.group_size <= 0:
+        parser.error("--group-size must be positive")
+    if args.rows > 1 and (args.clip_percentile is not None or args.group_size is not None):
+        parser.error("--clip-percentile and --group-size are supported only with one row")
+    if args.benchmark_clipping and (args.rows > 1 or args.clip_percentile is not None or args.group_size is not None):
+        parser.error("--benchmark-clipping cannot be combined with --rows, --clip-percentile, or --group-size")
 
     if args.benchmark_clipping:
         percentiles = (90.0, 95.0, 99.0, 100.0)
@@ -207,6 +246,22 @@ def main() -> None:
             "rows": args.rows,
             "seed": args.seed,
             **compare_matrix_quantization(matrix, args.bits),
+        }
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.group_size is not None:
+        packed, scales = quantize_groupwise(weights, args.bits, args.group_size)
+        restored = dequantize_groupwise(packed, scales, args.group_size)
+        report = {
+            "bits": args.bits,
+            "elements": args.size,
+            "group_size": args.group_size,
+            "groups": len(scales),
+            "seed": args.seed,
+            "scales": scales,
+            "theoretical_compression_ratio": 32 / args.bits,
+            **error_metrics(weights, restored),
         }
         print(json.dumps(report, indent=2, sort_keys=True))
         return
