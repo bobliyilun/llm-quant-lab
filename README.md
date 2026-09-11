@@ -31,5 +31,8 @@ threshold before symmetric quantization; the JSON report includes that threshold
 across seeded Gaussian and Laplace weight samples.
 `--group-size` gives each contiguous group an independent symmetric scale and
 reports the group count and scales used for reconstruction.
+Compression reports include quantized payload plus 32-bit floating-point scale
+metadata, so smaller groups and per-channel quantization show their real storage
+tradeoff.
 
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.

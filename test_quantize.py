@@ -3,6 +3,7 @@ import unittest
 from quantize import (
     benchmark_clipping,
     compare_matrix_quantization,
+    compression_estimate,
     dequantize,
     dequantize_affine,
     dequantize_groupwise,
@@ -61,6 +62,16 @@ class QuantizationTests(unittest.TestCase):
         self.assertEqual(scales, [1 / 7, 8 / 7])
         self.assertEqual(dequantize_groupwise(packed, scales, 4), values)
 
+    def test_compression_estimate_includes_scale_metadata(self):
+        self.assertEqual(
+            compression_estimate(16, 4, 2),
+            {"scale_metadata_bits": 64, "storage_bits": 128, "compression_ratio": 4.0},
+        )
+        self.assertLess(
+            compression_estimate(16, 4, 2)["compression_ratio"],
+            compression_estimate(16, 4)["compression_ratio"],
+        )
+
     def test_percentile_clipping_uses_nearest_rank_and_preserves_body_precision(self):
         values = [-1.0, -0.5, 0.0, 0.5, 1.0, 100.0]
         packed, scale, clip_value = quantize_symmetric_clipped(values, 4, 80)
@@ -94,6 +105,8 @@ class QuantizationTests(unittest.TestCase):
             quantize_symmetric_clipped([1.0], 4, 0)
         with self.assertRaises(ValueError):
             benchmark_clipping(4, 1, 0, ())
+        with self.assertRaises(ValueError):
+            compression_estimate(0, 4)
 
 
 if __name__ == "__main__":

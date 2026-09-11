@@ -11,7 +11,7 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Add percentile clipping for outlier-heavy distributions
 - [x] Benchmark clipping thresholds across Laplace and Gaussian weights
 - [x] Add group-wise quantization with configurable group size
-- [ ] Record scale metadata overhead in compression estimates
+- [x] Record scale metadata overhead in compression estimates
 - [ ] Add packed INT4 byte encoding and round-trip tests
 - [ ] Add packed INT2 byte encoding and round-trip tests
 - [ ] Implement a quantized dot-product reference kernel

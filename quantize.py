@@ -131,6 +131,18 @@ def error_metrics(reference: Sequence[float], candidate: Sequence[float]) -> dic
     }
 
 
+def compression_estimate(elements: int, bits: int, scale_count: int = 1) -> dict:
+    """Estimate FP32-to-quantized storage including one FP32 value per scale."""
+    if elements <= 0 or scale_count <= 0:
+        raise ValueError("elements and scale_count must be positive")
+    quantized_bits = elements * bits + scale_count * 32
+    return {
+        "scale_metadata_bits": scale_count * 32,
+        "storage_bits": quantized_bits,
+        "compression_ratio": elements * 32 / quantized_bits,
+    }
+
+
 def compare_matrix_quantization(matrix: Sequence[Sequence[float]], bits: int) -> dict:
     """Return reconstruction error for per-tensor and per-channel quantization."""
     if not matrix or not matrix[0]:
@@ -148,6 +160,10 @@ def compare_matrix_quantization(matrix: Sequence[Sequence[float]], bits: int) ->
         "per_channel": error_metrics(
             flattened, [value for row in channel_restored for value in row]
         ),
+        "compression": {
+            "per_tensor": compression_estimate(len(flattened), bits),
+            "per_channel": compression_estimate(len(flattened), bits, len(channel_scales)),
+        },
     }
 
 
@@ -260,7 +276,7 @@ def main() -> None:
             "groups": len(scales),
             "seed": args.seed,
             "scales": scales,
-            "theoretical_compression_ratio": 32 / args.bits,
+            "compression": compression_estimate(args.size, args.bits, len(scales)),
             **error_metrics(weights, restored),
         }
         print(json.dumps(report, indent=2, sort_keys=True))
@@ -279,7 +295,7 @@ def main() -> None:
         "elements": args.size,
         "seed": args.seed,
         "scale": scale,
-        "theoretical_compression_ratio": 32 / args.bits,
+        "compression": compression_estimate(args.size, args.bits),
         **error_metrics(weights, restored),
     }
     if clip_value is not None:
