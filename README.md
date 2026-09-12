@@ -34,5 +34,8 @@ reports the group count and scales used for reconstruction.
 Compression reports include quantized payload plus 32-bit floating-point scale
 metadata, so smaller groups and per-channel quantization show their real storage
 tradeoff.
+Packed INT4 values use two's-complement nibbles, with the first value in each
+byte's low nibble; `pack_int4` and `unpack_int4` provide a lossless reference
+encoding for quantized values.
 
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.

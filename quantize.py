@@ -22,6 +22,28 @@ def quantize_symmetric(values: Sequence[float], bits: int) -> Tuple[List[int], f
     return quantized, scale
 
 
+def pack_int4(values: Sequence[int]) -> bytes:
+    """Pack signed INT4 values into low-nibble-first two's-complement bytes."""
+    if any(value < -8 or value > 7 for value in values):
+        raise ValueError("INT4 values must be between -8 and 7")
+    return bytes(
+        (values[offset] & 0xF)
+        | ((values[offset + 1] & 0xF) << 4 if offset + 1 < len(values) else 0)
+        for offset in range(0, len(values), 2)
+    )
+
+
+def unpack_int4(packed: bytes, count: int) -> List[int]:
+    """Unpack count signed INT4 values from low-nibble-first bytes."""
+    if count < 0 or count > len(packed) * 2:
+        raise ValueError("count must fit in packed INT4 bytes")
+    return [
+        value - 16 if value >= 8 else value
+        for byte in packed
+        for value in (byte & 0xF, byte >> 4)
+    ][:count]
+
+
 def quantize_symmetric_clipped(
     values: Sequence[float], bits: int, percentile: float
 ) -> Tuple[List[int], float, float]:
