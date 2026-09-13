@@ -9,6 +9,7 @@ from quantize import (
     dequantize_groupwise,
     dequantize_per_channel,
     error_metrics,
+    pack_int2,
     pack_int4,
     quantize_affine,
     quantize_per_channel,
@@ -16,6 +17,7 @@ from quantize import (
     quantize_symmetric_clipped,
     quantize_symmetric,
     unpack_int4,
+    unpack_int2,
 )
 
 
@@ -29,6 +31,16 @@ class QuantizationTests(unittest.TestCase):
             pack_int4([8])
         with self.assertRaises(ValueError):
             unpack_int4(packed, len(values) + 2)
+
+    def test_int2_packing_round_trip_including_partial_byte(self):
+        values = [-2, -1, 0, 1, -2, 1]
+        packed = pack_int2(values)
+        self.assertEqual(packed, bytes((0x4E, 0x06)))
+        self.assertEqual(unpack_int2(packed, len(values)), values)
+        with self.assertRaises(ValueError):
+            pack_int2([2])
+        with self.assertRaises(ValueError):
+            unpack_int2(packed, len(values) + 3)
 
     def test_zero_tensor_round_trip(self):
         packed, scale = quantize_symmetric([0.0, 0.0], 4)

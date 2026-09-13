@@ -44,6 +44,28 @@ def unpack_int4(packed: bytes, count: int) -> List[int]:
     ][:count]
 
 
+def pack_int2(values: Sequence[int]) -> bytes:
+    """Pack signed INT2 values into low-pair-first two's-complement bytes."""
+    if any(value < -2 or value > 1 for value in values):
+        raise ValueError("INT2 values must be between -2 and 1")
+    return bytes(
+        sum((values[offset + index] & 0x3) << (index * 2)
+            for index in range(min(4, len(values) - offset)))
+        for offset in range(0, len(values), 4)
+    )
+
+
+def unpack_int2(packed: bytes, count: int) -> List[int]:
+    """Unpack count signed INT2 values from low-pair-first bytes."""
+    if count < 0 or count > len(packed) * 4:
+        raise ValueError("count must fit in packed INT2 bytes")
+    return [
+        value - 4 if value >= 2 else value
+        for byte in packed
+        for value in ((byte >> shift) & 0x3 for shift in range(0, 8, 2))
+    ][:count]
+
+
 def quantize_symmetric_clipped(
     values: Sequence[float], bits: int, percentile: float
 ) -> Tuple[List[int], float, float]:

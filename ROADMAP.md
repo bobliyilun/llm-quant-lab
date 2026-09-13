@@ -13,7 +13,7 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Add group-wise quantization with configurable group size
 - [x] Record scale metadata overhead in compression estimates
 - [x] Add packed INT4 byte encoding and round-trip tests
-- [ ] Add packed INT2 byte encoding and round-trip tests
+- [x] Add packed INT2 byte encoding and round-trip tests
 - [ ] Implement a quantized dot-product reference kernel
 - [ ] Compare dequantize-first and fused dot-product correctness
 - [ ] Add calibration statistics export as JSON

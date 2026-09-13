@@ -37,5 +37,8 @@ tradeoff.
 Packed INT4 values use two's-complement nibbles, with the first value in each
 byte's low nibble; `pack_int4` and `unpack_int4` provide a lossless reference
 encoding for quantized values.
+Packed INT2 values use two-bit two's-complement pairs, with the first value in
+each byte's low pair; `pack_int2` and `unpack_int2` provide the corresponding
+lossless reference encoding.
 
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.
