@@ -41,4 +41,7 @@ Packed INT2 values use two-bit two's-complement pairs, with the first value in
 each byte's low pair; `pack_int2` and `unpack_int2` provide the corresponding
 lossless reference encoding.
 
+`quantized_dot_product` is a reference kernel that accumulates integer products
+and applies the two symmetric scales once to produce a floating-point result.
+
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.

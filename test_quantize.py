@@ -16,12 +16,22 @@ from quantize import (
     quantize_groupwise,
     quantize_symmetric_clipped,
     quantize_symmetric,
+    quantized_dot_product,
     unpack_int4,
     unpack_int2,
 )
 
 
 class QuantizationTests(unittest.TestCase):
+    def test_quantized_dot_product_accumulates_integer_products(self):
+        left, left_scale = quantize_symmetric([-1.0, 0.0, 1.0], 4)
+        right, right_scale = quantize_symmetric([0.5, -0.5, 1.0], 4)
+        self.assertEqual(
+            quantized_dot_product(left, left_scale, right, right_scale), 3 / 7
+        )
+        with self.assertRaises(ValueError):
+            quantized_dot_product(left, left_scale, right[:-1], right_scale)
+
     def test_int4_packing_round_trip_including_odd_length(self):
         values = [-8, -7, -1, 0, 1, 7, -3]
         packed = pack_int4(values)

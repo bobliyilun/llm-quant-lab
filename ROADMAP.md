@@ -14,7 +14,7 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Record scale metadata overhead in compression estimates
 - [x] Add packed INT4 byte encoding and round-trip tests
 - [x] Add packed INT2 byte encoding and round-trip tests
-- [ ] Implement a quantized dot-product reference kernel
+- [x] Implement a quantized dot-product reference kernel
 - [ ] Compare dequantize-first and fused dot-product correctness
 - [ ] Add calibration statistics export as JSON
 - [ ] Add deterministic benchmark snapshots for regression checks

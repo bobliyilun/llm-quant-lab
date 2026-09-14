@@ -134,6 +134,22 @@ def dequantize(values: Sequence[int], scale: float) -> List[float]:
     return [value * scale for value in values]
 
 
+def quantized_dot_product(
+    left: Sequence[int], left_scale: float, right: Sequence[int], right_scale: float
+) -> float:
+    """Compute a reference dot product directly from symmetric quantized values."""
+    if len(left) != len(right) or not left:
+        raise ValueError("inputs must have the same non-zero length")
+    if (
+        left_scale <= 0
+        or right_scale <= 0
+        or not math.isfinite(left_scale)
+        or not math.isfinite(right_scale)
+    ):
+        raise ValueError("scales must be positive and finite")
+    return sum(a * b for a, b in zip(left, right)) * left_scale * right_scale
+
+
 def dequantize_groupwise(
     values: Sequence[int], scales: Sequence[float], group_size: int
 ) -> List[float]:
