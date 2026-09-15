@@ -202,6 +202,21 @@ def error_metrics(reference: Sequence[float], candidate: Sequence[float]) -> dic
     }
 
 
+def calibration_statistics(values: Sequence[float]) -> dict:
+    """Return JSON-safe calibration statistics for a finite tensor."""
+    if not values or not all(math.isfinite(value) for value in values):
+        raise ValueError("values must be non-empty and finite")
+    mean = sum(values) / len(values)
+    return {
+        "elements": len(values),
+        "min": min(values),
+        "max": max(values),
+        "mean": mean,
+        "stddev": math.sqrt(sum((value - mean) ** 2 for value in values) / len(values)),
+        "max_abs": max(abs(value) for value in values),
+    }
+
+
 def compression_estimate(elements: int, bits: int, scale_count: int = 1) -> dict:
     """Estimate FP32-to-quantized storage including one FP32 value per scale."""
     if elements <= 0 or scale_count <= 0:
@@ -293,6 +308,11 @@ def main() -> None:
         action="store_true",
         help="compare clipping thresholds across seeded Gaussian and Laplace weights",
     )
+    parser.add_argument(
+        "--calibration-stats",
+        action="store_true",
+        help="export deterministic tensor calibration statistics as JSON",
+    )
     args = parser.parse_args()
     if args.size <= 0 or args.rows <= 0:
         parser.error("--size and --rows must be positive")
@@ -300,8 +320,10 @@ def main() -> None:
         parser.error("--group-size must be positive")
     if args.rows > 1 and (args.clip_percentile is not None or args.group_size is not None):
         parser.error("--clip-percentile and --group-size are supported only with one row")
-    if args.benchmark_clipping and (args.rows > 1 or args.clip_percentile is not None or args.group_size is not None):
-        parser.error("--benchmark-clipping cannot be combined with --rows, --clip-percentile, or --group-size")
+    if args.benchmark_clipping and (args.rows > 1 or args.clip_percentile is not None or args.group_size is not None or args.calibration_stats):
+        parser.error("--benchmark-clipping cannot be combined with --rows, --clip-percentile, --group-size, or --calibration-stats")
+    if args.calibration_stats and (args.rows > 1 or args.clip_percentile is not None or args.group_size is not None):
+        parser.error("--calibration-stats cannot be combined with --rows, --clip-percentile, or --group-size")
 
     if args.benchmark_clipping:
         percentiles = (90.0, 95.0, 99.0, 100.0)
@@ -322,6 +344,9 @@ def main() -> None:
         for row in range(args.rows)
         for _ in range(args.size)
     ]
+    if args.calibration_stats:
+        print(json.dumps({"seed": args.seed, **calibration_statistics(weights)}, indent=2, sort_keys=True))
+        return
     if args.rows > 1:
         matrix = [
             weights[offset : offset + args.size]

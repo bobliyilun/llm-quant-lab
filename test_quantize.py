@@ -1,7 +1,9 @@
+import math
 import unittest
 
 from quantize import (
     benchmark_clipping,
+    calibration_statistics,
     compare_matrix_quantization,
     compression_estimate,
     dequantize,
@@ -24,6 +26,14 @@ from quantize import (
 
 
 class QuantizationTests(unittest.TestCase):
+    def test_calibration_statistics_are_deterministic_and_complete(self):
+        self.assertEqual(
+            calibration_statistics([-2.0, 0.0, 2.0]),
+            {"elements": 3, "min": -2.0, "max": 2.0, "mean": 0.0, "stddev": math.sqrt(8 / 3), "max_abs": 2.0},
+        )
+        with self.assertRaises(ValueError):
+            calibration_statistics([])
+
     def test_quantized_dot_product_accumulates_integer_products(self):
         left, left_scale = quantize_symmetric([-1.0, 0.0, 1.0], 4)
         right, right_scale = quantize_symmetric([0.5, -0.5, 1.0], 4)

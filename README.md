@@ -19,6 +19,7 @@ python3 quantize.py --bits 4 --size 4096 --seed 7
 python3 quantize.py --bits 4 --size 4096 --seed 7 --clip-percentile 99.5
 python3 quantize.py --bits 4 --size 4096 --seed 7 --group-size 128
 python3 quantize.py --bits 4 --size 4096 --seed 7 --benchmark-clipping
+python3 quantize.py --size 4096 --seed 7 --calibration-stats
 python3 quantize.py --bits 4 --rows 8 --size 512 --seed 7
 python3 -m unittest -v
 ```
@@ -45,5 +46,8 @@ lossless reference encoding.
 and applies the two symmetric scales once to produce a floating-point result.
 `dequantize_first_dot_product` provides the equivalent reference calculation
 after separately dequantizing both inputs, for fused-kernel correctness checks.
+
+`--calibration-stats` exports deterministic min, max, mean, population standard
+deviation, and maximum magnitude as JSON for the seeded tensor.
 
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.
