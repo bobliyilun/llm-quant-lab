@@ -43,5 +43,7 @@ lossless reference encoding.
 
 `quantized_dot_product` is a reference kernel that accumulates integer products
 and applies the two symmetric scales once to produce a floating-point result.
+`dequantize_first_dot_product` provides the equivalent reference calculation
+after separately dequantizing both inputs, for fused-kernel correctness checks.
 
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.

@@ -6,6 +6,7 @@ from quantize import (
     compression_estimate,
     dequantize,
     dequantize_affine,
+    dequantize_first_dot_product,
     dequantize_groupwise,
     dequantize_per_channel,
     error_metrics,
@@ -31,6 +32,16 @@ class QuantizationTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             quantized_dot_product(left, left_scale, right[:-1], right_scale)
+
+    def test_fused_dot_product_matches_dequantize_first_reference(self):
+        left, left_scale = quantize_symmetric([-1.0, -0.2, 0.3, 1.0], 4)
+        right, right_scale = quantize_symmetric([0.5, -0.4, 0.7, -0.1], 4)
+        self.assertAlmostEqual(
+            quantized_dot_product(left, left_scale, right, right_scale),
+            dequantize_first_dot_product(left, left_scale, right, right_scale),
+        )
+        with self.assertRaises(ValueError):
+            dequantize_first_dot_product(left, left_scale, right[:-1], right_scale)
 
     def test_int4_packing_round_trip_including_odd_length(self):
         values = [-8, -7, -1, 0, 1, 7, -3]

@@ -150,6 +150,17 @@ def quantized_dot_product(
     return sum(a * b for a, b in zip(left, right)) * left_scale * right_scale
 
 
+def dequantize_first_dot_product(
+    left: Sequence[int], left_scale: float, right: Sequence[int], right_scale: float
+) -> float:
+    """Reference dot product after separately dequantizing symmetric inputs."""
+    if len(left) != len(right) or not left:
+        raise ValueError("inputs must have the same non-zero length")
+    return sum(
+        a * b for a, b in zip(dequantize(left, left_scale), dequantize(right, right_scale))
+    )
+
+
 def dequantize_groupwise(
     values: Sequence[int], scales: Sequence[float], group_size: int
 ) -> List[float]:
