@@ -1,4 +1,6 @@
+import json
 import math
+from pathlib import Path
 import unittest
 
 from quantize import (
@@ -26,6 +28,19 @@ from quantize import (
 
 
 class QuantizationTests(unittest.TestCase):
+    def test_clipping_benchmark_matches_deterministic_snapshot(self):
+        snapshot_path = Path(__file__).with_name("benchmarks") / "int4_clipping_seed7_size256.json"
+        snapshot = json.loads(snapshot_path.read_text())
+        self.assertEqual(
+            benchmark_clipping(
+                snapshot["result"]["bits"],
+                snapshot["result"]["elements"],
+                snapshot["result"]["seed"],
+                snapshot["result"]["percentiles"],
+            ),
+            snapshot["result"]["distributions"],
+        )
+
     def test_calibration_statistics_are_deterministic_and_complete(self):
         self.assertEqual(
             calibration_statistics([-2.0, 0.0, 2.0]),

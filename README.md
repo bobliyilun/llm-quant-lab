@@ -50,4 +50,8 @@ after separately dequantizing both inputs, for fused-kernel correctness checks.
 `--calibration-stats` exports deterministic min, max, mean, population standard
 deviation, and maximum magnitude as JSON for the seeded tensor.
 
+Deterministic clipping benchmark snapshots live in `benchmarks/`; the regression
+suite compares the implementation to the recorded seeded result. Each snapshot
+records the command and environment that generated it.
+
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.

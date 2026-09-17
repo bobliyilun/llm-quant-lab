@@ -17,7 +17,7 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Implement a quantized dot-product reference kernel
 - [x] Compare dequantize-first and fused dot-product correctness
 - [x] Add calibration statistics export as JSON
-- [ ] Add deterministic benchmark snapshots for regression checks
+- [x] Add deterministic benchmark snapshots for regression checks
 - [ ] Measure error sensitivity across tensor sizes
 - [ ] Add property-style randomized invariant checks
 - [ ] Document numerical limitations and failure modes
