@@ -18,7 +18,7 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Compare dequantize-first and fused dot-product correctness
 - [x] Add calibration statistics export as JSON
 - [x] Add deterministic benchmark snapshots for regression checks
-- [ ] Measure error sensitivity across tensor sizes
+- [x] Measure error sensitivity across tensor sizes
 - [ ] Add property-style randomized invariant checks
 - [ ] Document numerical limitations and failure modes
 - [ ] Publish a final comparison table with reproducible commands

@@ -1,0 +1,35 @@
+{
+  "command": "python3 quantize.py --bits 4 --seed 7 --benchmark-sizes",
+  "environment": {
+    "platform": "Darwin 25.5.0 arm64",
+    "python": "CPython 3.9.6"
+  },
+  "result": {
+    "bits": 4,
+    "seed": 7,
+    "sizes": [
+      64,
+      256,
+      1024,
+      4096
+    ],
+    "tensor_sizes": {
+      "64": {
+        "max_abs_error": 0.06983160931661192,
+        "mse": 0.0014239556034373818
+      },
+      "256": {
+        "max_abs_error": 0.09649630317935087,
+        "mse": 0.0032220036477790107
+      },
+      "1024": {
+        "max_abs_error": 0.1228882551396218,
+        "mse": 0.004937473272571197
+      },
+      "4096": {
+        "max_abs_error": 0.123973137378801,
+        "mse": 0.005030078791797965
+      }
+    }
+  }
+}

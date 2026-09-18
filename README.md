@@ -19,6 +19,7 @@ python3 quantize.py --bits 4 --size 4096 --seed 7
 python3 quantize.py --bits 4 --size 4096 --seed 7 --clip-percentile 99.5
 python3 quantize.py --bits 4 --size 4096 --seed 7 --group-size 128
 python3 quantize.py --bits 4 --size 4096 --seed 7 --benchmark-clipping
+python3 quantize.py --bits 4 --seed 7 --benchmark-sizes
 python3 quantize.py --size 4096 --seed 7 --calibration-stats
 python3 quantize.py --bits 4 --rows 8 --size 512 --seed 7
 python3 -m unittest -v
@@ -30,6 +31,8 @@ scales and reports reconstruction error for per-tensor and per-channel modes.
 threshold before symmetric quantization; the JSON report includes that threshold.
 `--benchmark-clipping` compares 90th, 95th, 99th, and 100th percentile clipping
 across seeded Gaussian and Laplace weight samples.
+`--benchmark-sizes` compares the same seeded Gaussian distribution at 64, 256,
+1,024, and 4,096 elements so reconstruction error can be inspected by tensor size.
 `--group-size` gives each contiguous group an independent symmetric scale and
 reports the group count and scales used for reconstruction.
 Compression reports include quantized payload plus 32-bit floating-point scale

@@ -5,6 +5,7 @@ import unittest
 
 from quantize import (
     benchmark_clipping,
+    benchmark_tensor_sizes,
     calibration_statistics,
     compare_matrix_quantization,
     compression_estimate,
@@ -28,6 +29,16 @@ from quantize import (
 
 
 class QuantizationTests(unittest.TestCase):
+    def test_tensor_size_benchmark_matches_deterministic_snapshot(self):
+        snapshot_path = Path(__file__).with_name("benchmarks") / "int4_size_sensitivity_seed7.json"
+        snapshot = json.loads(snapshot_path.read_text())
+        self.assertEqual(
+            benchmark_tensor_sizes(
+                snapshot["result"]["bits"], snapshot["result"]["sizes"], snapshot["result"]["seed"]
+            ),
+            snapshot["result"]["tensor_sizes"],
+        )
+
     def test_clipping_benchmark_matches_deterministic_snapshot(self):
         snapshot_path = Path(__file__).with_name("benchmarks") / "int4_clipping_seed7_size256.json"
         snapshot = json.loads(snapshot_path.read_text())
@@ -175,6 +186,8 @@ class QuantizationTests(unittest.TestCase):
             quantize_symmetric_clipped([1.0], 4, 0)
         with self.assertRaises(ValueError):
             benchmark_clipping(4, 1, 0, ())
+        with self.assertRaises(ValueError):
+            benchmark_tensor_sizes(4, (), 0)
         with self.assertRaises(ValueError):
             compression_estimate(0, 4)
 

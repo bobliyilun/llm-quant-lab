@@ -288,6 +288,19 @@ def benchmark_clipping(
     return report
 
 
+def benchmark_tensor_sizes(bits: int, sizes: Sequence[int], seed: int) -> dict:
+    """Measure symmetric quantization error on equally seeded tensor sizes."""
+    if not sizes or any(size <= 0 for size in sizes):
+        raise ValueError("sizes must be non-empty and positive")
+    report = {}
+    for size in sizes:
+        rng = random.Random(seed)
+        values = [rng.gauss(0.0, 0.5) for _ in range(size)]
+        packed, scale = quantize_symmetric(values, bits)
+        report[str(size)] = error_metrics(values, dequantize(packed, scale))
+    return report
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bits", type=int, choices=range(2, 17), default=4)
@@ -309,6 +322,11 @@ def main() -> None:
         help="compare clipping thresholds across seeded Gaussian and Laplace weights",
     )
     parser.add_argument(
+        "--benchmark-sizes",
+        action="store_true",
+        help="compare reconstruction error across deterministic tensor sizes",
+    )
+    parser.add_argument(
         "--calibration-stats",
         action="store_true",
         help="export deterministic tensor calibration statistics as JSON",
@@ -320,8 +338,10 @@ def main() -> None:
         parser.error("--group-size must be positive")
     if args.rows > 1 and (args.clip_percentile is not None or args.group_size is not None):
         parser.error("--clip-percentile and --group-size are supported only with one row")
-    if args.benchmark_clipping and (args.rows > 1 or args.clip_percentile is not None or args.group_size is not None or args.calibration_stats):
-        parser.error("--benchmark-clipping cannot be combined with --rows, --clip-percentile, --group-size, or --calibration-stats")
+    if args.benchmark_clipping and (args.rows > 1 or args.clip_percentile is not None or args.group_size is not None or args.calibration_stats or args.benchmark_sizes):
+        parser.error("--benchmark-clipping cannot be combined with --rows, --clip-percentile, --group-size, --calibration-stats, or --benchmark-sizes")
+    if args.benchmark_sizes and (args.rows > 1 or args.clip_percentile is not None or args.group_size is not None or args.calibration_stats):
+        parser.error("--benchmark-sizes cannot be combined with --rows, --clip-percentile, --group-size, or --calibration-stats")
     if args.calibration_stats and (args.rows > 1 or args.clip_percentile is not None or args.group_size is not None):
         parser.error("--calibration-stats cannot be combined with --rows, --clip-percentile, or --group-size")
 
@@ -335,6 +355,16 @@ def main() -> None:
             "distributions": benchmark_clipping(
                 args.bits, args.size, args.seed, percentiles
             ),
+        }, indent=2, sort_keys=True))
+        return
+
+    if args.benchmark_sizes:
+        sizes = (64, 256, 1024, 4096)
+        print(json.dumps({
+            "bits": args.bits,
+            "seed": args.seed,
+            "sizes": sizes,
+            "tensor_sizes": benchmark_tensor_sizes(args.bits, sizes, args.seed),
         }, indent=2, sort_keys=True))
         return
 
