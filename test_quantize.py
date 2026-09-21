@@ -1,6 +1,7 @@
 import json
 import math
 from pathlib import Path
+import random
 import unittest
 
 from quantize import (
@@ -29,6 +30,39 @@ from quantize import (
 
 
 class QuantizationTests(unittest.TestCase):
+    def test_randomized_quantization_invariants(self):
+        """Seeded input variety preserves ranges, shapes, and reconstruction bounds."""
+        rng = random.Random(20260921)
+        for bits in range(2, 9):
+            qmax = (1 << (bits - 1)) - 1
+            for size in (1, 2, 7, 31):
+                values = [rng.uniform(-10.0, 10.0) for _ in range(size)]
+                packed, scale = quantize_symmetric(values, bits)
+                restored = dequantize(packed, scale)
+                self.assertEqual(len(packed), size)
+                self.assertEqual(len(restored), size)
+                self.assertTrue(all(-qmax <= value <= qmax for value in packed))
+                self.assertGreater(scale, 0.0)
+                self.assertLessEqual(
+                    error_metrics(values, restored)["max_abs_error"], scale / 2 + 1e-12
+                )
+
+    def test_randomized_packing_and_groupwise_invariants(self):
+        """Seeded packed encodings and groupwise shapes round-trip for varied lengths."""
+        rng = random.Random(20260921)
+        for size in range(1, 18):
+            int4_values = [rng.randint(-8, 7) for _ in range(size)]
+            self.assertEqual(unpack_int4(pack_int4(int4_values), size), int4_values)
+            int2_values = [rng.randint(-2, 1) for _ in range(size)]
+            self.assertEqual(unpack_int2(pack_int2(int2_values), size), int2_values)
+
+            values = [rng.uniform(-3.0, 3.0) for _ in range(size)]
+            for group_size in (1, 3, 8):
+                packed, scales = quantize_groupwise(values, 4, group_size)
+                self.assertEqual(len(packed), size)
+                self.assertEqual(len(scales), math.ceil(size / group_size))
+                self.assertEqual(len(dequantize_groupwise(packed, scales, group_size)), size)
+
     def test_tensor_size_benchmark_matches_deterministic_snapshot(self):
         snapshot_path = Path(__file__).with_name("benchmarks") / "int4_size_sensitivity_seed7.json"
         snapshot = json.loads(snapshot_path.read_text())
