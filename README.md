@@ -57,4 +57,45 @@ Deterministic clipping benchmark snapshots live in `benchmarks/`; the regression
 suite compares the implementation to the recorded seeded result. Each snapshot
 records the command and environment that generated it.
 
+## Numerical limitations and failure modes
+
+This repository is a reference implementation for small, finite Python inputs;
+it is not a calibrated production quantization pipeline. Treat the reported MSE
+and maximum absolute error as reconstruction diagnostics, not as model-quality
+or task-accuracy guarantees.
+
+- Symmetric quantization uses one signed scale per tensor, row, or contiguous
+  group and reserves the most-negative signed integer code. Distributions with
+  a non-zero mean can therefore use the available code range less efficiently
+  than affine quantization. The affine helper is provided for comparison, but
+  the CLI's per-channel and groupwise paths are symmetric only.
+- A single large magnitude determines an unclipped symmetric scale. That can
+  make small weights round to zero; conversely, percentile clipping improves
+  precision for the retained body while introducing bounded saturation error
+  for the clipped tail. Do not select a percentile from MSE alone: inspect both
+  MSE and `max_abs_error` on representative weights.
+- Per-channel and smaller group sizes often reduce reconstruction error, but
+  require one FP32 scale per row or group. Their compression estimates include
+  scale metadata, yet do not include real tensor headers, alignment, zero-point
+  metadata, kernel packing requirements, or activation storage.
+- The quantized dot-product function is a correctness reference, not a hardware
+  kernel. Python integers do not model accumulator width, overflow, SIMD
+  instructions, cache behavior, mixed-precision accumulation, or backend
+  rounding. Validate an intended inference backend independently.
+- Inputs must be finite. The code rejects NaN and infinities rather than
+  defining a serialization or recovery policy for them. It also does not cover
+  activation quantization, per-layer calibration, bias handling, outlier
+  routing, non-linear operations, or end-to-end model evaluation.
+
+Reproduce the seeded clipping trade-off used by the regression suite with:
+
+```bash
+python3 quantize.py --bits 4 --size 256 --seed 7 --benchmark-clipping
+```
+
+For the bundled Laplace sample, 99th-percentile clipping lowers MSE versus no
+clipping while raising maximum absolute error because tail values saturate. The
+checked-in snapshot records the exact values and its generation environment;
+rerun the command and compare its JSON output before generalizing the result.
+
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.
