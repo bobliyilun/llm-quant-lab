@@ -98,4 +98,33 @@ clipping while raising maximum absolute error because tail values saturate. The
 checked-in snapshot records the exact values and its generation environment;
 rerun the command and compare its JSON output before generalizing the result.
 
+## Final seeded comparison
+
+The table below is a reproducible, reconstruction-only comparison. The first
+four rows use the same 4,096-element Gaussian sample (`seed=7`); the final row
+uses an 8-by-512 matrix whose rows intentionally have different scales, so it
+compares per-tensor and per-channel quantization on the same matrix. Storage
+ratios include FP32 scale metadata, but not tensor headers or alignment.
+
+| Configuration | MSE | Max absolute error | Compression ratio | Reproduce |
+| --- | ---: | ---: | ---: | --- |
+| INT4, per-tensor | 0.00503008 | 0.12397314 | 7.984x | `python3 quantize.py --bits 4 --size 4096 --seed 7` |
+| INT8, per-tensor | 0.00001528 | 0.00683244 | 3.996x | `python3 quantize.py --bits 8 --size 4096 --seed 7` |
+| INT4, 99th-percentile clipping | 0.00298404 | 0.45344334 | 7.984x | `python3 quantize.py --bits 4 --size 4096 --seed 7 --clip-percentile 99` |
+| INT4, groups of 128 | 0.00323526 | 0.12371798 | 7.529x | `python3 quantize.py --bits 4 --size 4096 --seed 7 --group-size 128` |
+| INT4 matrix: per-tensor / per-channel | 0.23870605 / 0.10273656 | 0.85813270 / 0.85684416 | 7.984x / 7.877x | `python3 quantize.py --bits 4 --rows 8 --size 512 --seed 7` |
+
+For this seeded sample, INT8 cuts reconstruction error at roughly half the
+payload compression of INT4. INT4 clipping and groupwise scaling lower MSE,
+but clipping makes the worst-case error larger and groupwise scaling adds
+metadata. On the intentionally scale-skewed matrix, per-channel scaling more
+than halves MSE while slightly reducing the estimated compression ratio.
+
+The clipping sweep is reproducible independently and shows why percentile
+selection must consider both metrics:
+
+```bash
+python3 quantize.py --bits 4 --size 256 --seed 7 --benchmark-clipping
+```
+
 See [ROADMAP.md](ROADMAP.md) for planned experiments and acceptance criteria.

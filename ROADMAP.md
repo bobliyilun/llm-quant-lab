@@ -21,4 +21,4 @@ Each checked item must include a runnable test or reproducible measurement.
 - [x] Measure error sensitivity across tensor sizes
 - [x] Add property-style randomized invariant checks
 - [x] Document numerical limitations and failure modes
-- [ ] Publish a final comparison table with reproducible commands
+- [x] Publish a final comparison table with reproducible commands
